@@ -323,6 +323,18 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/jansson_private_config.h.cmake
 # and tell the source code to include it
 add_definitions(-DHAVE_CONFIG_H)
 
+########################################################################
+# determine version
+########################################################################
+# version
+set( _VERSION_FILE ${CMAKE_CURRENT_BINARY_DIR}/include/jansson.h )
+if( EXISTS ${_VERSION_FILE} )
+    file( READ ${_VERSION_FILE} _JANSSON_H_CONTENTS )
+    string(REGEX REPLACE "\\." "_" JANSSON_VERSION_SUFFIX "${JANSSON_DISPLAY_VERSION}")
+else()
+    message(FATAL_ERROR "Could not find jansson.h")
+endif ()
+
 include_directories (${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories (${CMAKE_CURRENT_BINARY_DIR}/private_include)
 
@@ -351,9 +363,21 @@ if(JANSSON_BUILD_SHARED_LIBS)
       ${JANSSON_HDR_PUBLIC} 
       src/jansson.def)
 
-   set_target_properties(jansson PROPERTIES
-      VERSION ${JANSSON_VERSION}
-      SOVERSION ${JANSSON_SOVERSION})
+    if(MSVC)
+        set_target_properties(jansson PROPERTIES DEFINE_SYMBOL   "LIBJANSSON_EXPORTS"
+                                                 RELEASE_POSTFIX "-mt-${JANSSON_VERSION_SUFFIX}"
+                                                 DEBUG_POSTFIX   "-mt-gd-${JANSSON_VERSION_SUFFIX}"
+                                                 RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
+                                                 VERSION ${JANSSON_VERSION}
+                                                 SOVERSION ${JANSSON_SOVERSION})
+    else()
+        set_target_properties(jansson PROPERTIES DEFINE_SYMBOL   "LIBJANSSON_EXPORTS"
+                                                 RELEASE_POSTFIX "-${JANSSON_VERSION_SUFFIX}"
+                                                 DEBUG_POSTFIX   "-gd-${JANSSON_VERSION_SUFFIX}"
+                                                 RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
+                                                 VERSION ${JANSSON_VERSION}
+                                                 SOVERSION ${JANSSON_SOVERSION})
+    endif()
 else()
    add_library(jansson 
       ${JANSSON_SRC}
